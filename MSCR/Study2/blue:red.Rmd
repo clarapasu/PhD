@@ -1,0 +1,310 @@
+---
+title: "Blue/red mesh"
+author: "Clara Panchaud"
+date: '2022-09-19'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,message=FALSE,warning=FALSE}
+library(fdrtool)
+library(secr)
+library(dplyr)
+library(ggpubr)
+library(ggplot2)
+library(numDeriv)
+#library(rgdal)
+Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
+source("Functions/Sim_Func.R")
+source("Functions/Fit_Func.R")
+
+df<-read.csv("marten_data.csv")
+traps_og<-read.csv("marten_traps.csv")
+```
+
+
+In this file we are going to test the blue/red mesh idea on the american marten. We load the data. 
+
+
+```{r}
+new_mesh <- function(data, cams, space, mask, threshold, fine_divisor = 2) {
+  cams_ind<-cams[unique(data$y)[!unique(data$y)==0], ,drop=FALSE]
+  
+  d1 <- nrow(cams_ind)
+  d2 <- nrow(mask)
+  
+  dists <- as.matrix(dist(rbind(as.matrix(cams_ind), as.matrix(mask))))
+
+  a <- dists[(d1 + 1):(d1 + d2), 1:d1] # distance from each point of the mask to the observed traps
+  
+   if (d1==1){
+    close_index <-unique(which(a<threshold))
+  }else {
+    close_index<-unique(which(a < threshold, arr.ind = TRUE)[,1])
+  }
+  close<-mask[close_index,] # the points of the mask closest to the traps 
+  fine_mask_list <- vector("list", nrow(close))
+
+  for (j in seq_len(nrow(close))) {
+    coarse_spacing <- space
+    fine_spacing <- space/ fine_divisor
+    center_x <- close[j,1]
+    center_y <- close[j,2]
+    
+    x_seq <- seq(center_x - coarse_spacing/2 + fine_spacing/2,
+                 center_x + coarse_spacing/2 - fine_spacing/2,
+                 by = fine_spacing)
+    y_seq <- seq(center_y - coarse_spacing/2 + fine_spacing/2,
+                 center_y + coarse_spacing/2 - fine_spacing/2,
+                 by = fine_spacing)
+    
+    fine_points <- expand.grid(x = x_seq, y = y_seq)
+
+
+    fine_mask_list[[j]] <- fine_points
+  }
+  
+  fine_mask <- unique(do.call(rbind, fine_mask_list))
+
+  # Remove fine mask points from original mask
+  
+  
+  coarse_mask <- mask[-close_index,]
+  dummy_mask<-coarse_mask[1:nrow(fine_mask),]
+  dummy_mask$x <- fine_mask$x
+  dummy_mask$y <- fine_mask$y
+    
+  attr(coarse_mask,"a")<-space^2 * 10^-4
+  
+  attr(dummy_mask,"a")<-fine_spacing^2 *10^-4
+
+  list(coarse = coarse_mask, fine = dummy_mask)
+}
+
+```
+
+
+
+
+
+```{r}
+space_list <- c(0.1, 0.2,0.5,1)
+threshold_list <- c(0.5,1,1.5,2)
+
+space<- 0.5
+
+trap = make.poly(x=traps_og$x, y=traps_og$y)
+trap <- trap[-31,]
+mask = make.mask(trap,buffer=2,spacing=space,type="trapbuffer")
+
+  a = attr(mask,"a") # grid cell area
+  D<-dim(mask)[1] # number of grid cells in the mesh
+  A = a*D # area of the mesh
+  A # 0.009525
+meshmat<-as.matrix(mask)
+traps<-as.matrix(trap)
+
+
+T<-12
+r<-10
+i<-2
+threshold<-2
+data<-discretize(df[df$id==i,],T,r)
+cams_ind<-traps[unique(data$y)[!unique(data$y)==0],,drop=FALSE]
+mesh<-new_mesh(data,traps,space,mask,threshold, 2)
+
+
+  a1 = attr(mesh[[1]],"a") # grid cell area
+  D1<-dim(mesh[[1]])[1] # number of grid cells in the mesh
+  a2 = attr(mesh[[2]],"a") # grid cell area
+  D2<-dim(mesh[[2]])[1] # number of grid cells in the mesh
+  A1 = a1*D1 # area of the mesh
+  A2 = a2*D2
+  A1+A2 # 0.009925
+ D1 +D2
+ D1
+ D2
+
+```
+
+
+
+```{r}
+
+# Get extent of the mask
+x_range <- range(mask$x) 
+y_range <- range(mask$y) 
+y_range[1]<-y_range[1]-1
+y_range[2]<-y_range[2]+1
+
+# Base plot to define area and axes
+plot(NA, xlim =x_range, ylim = y_range, asp=1, 
+     xlab = "Longitude", ylab = "Latitude", main = "Study Area")
+box(col = NA) 
+# Add mask and elements manually
+plot(mask, dots = FALSE, border = 1, ppoly = FALSE, add = TRUE)
+plotMaskEdge(mask, add = TRUE, col = "black", lwd = 1.5)
+points(mesh[[1]], col = "red", pch = 16, cex = 0.5)
+points(mesh[[2]], col = "blue", pch = 16, cex = 0.5)
+points(traps, col="black",pch=4, cex=1.5)
+points(cams_ind, col="yellow",pch=8, cex=2)
+
+```
+
+
+
+
+```{r}
+
+source("Fit_mesh.R")
+n<-length(unique(df$id))
+threshold<-1
+T<-12
+r<-10
+h0<- 0.85
+sigma<- -1.17
+beta<- 0.74
+theta<-c(h0,sigma,beta)
+
+
+i<-2
+#df[df$id==i,]
+data<-discretize(df[df$id==i,],T,r)
+cams_ind<-traps[unique(data$y)[!unique(data$y)==0],,drop=FALSE]
+ 
+ L <-Likelihood_integrate(theta,trap,data,mesh,1)
+ L
+```
+
+
+
+
+
+```{r}
+source("Fit_mesh.R")
+n<-length(unique(df$id))
+threshold<-1
+T<-12
+r<-10
+h0<- 0.85
+sigma<- -1.17
+beta<- 0.74
+theta<-c(h0,sigma,beta)
+
+
+i<-2
+#df[df$id==i,]
+data<-discretize(df[df$id==i,],T,r)
+cams_ind<-traps[unique(data$y)[!unique(data$y)==0],,drop=FALSE]
+ 
+
+space_list <- c( 0.5,1, 2)
+threshold_list <- c(1.5,2)
+divisor_list <- c(2,4, 6, 8)
+results<-data.frame(matrix(ncol = 7, nrow = 16))
+colnames(results)<-c( "dim 1", "dim 2", "Likelihood", "time", "space", "threshold", "divisor")
+
+j<-1
+# 
+
+for (space in space_list){
+  for (threshold in threshold_list){
+    for (divisor in divisor_list){
+    
+    
+    mask = make.mask(trap,buffer=2,spacing=space,type="trapbuffer")
+    mesh<-new_mesh(data,traps,space,mask,threshold,divisor)
+    
+    
+    start_time <- Sys.time()
+    L <-Likelihood_integrate(theta,trap,data,mesh,1)
+    end_time <- Sys.time()
+    fit_time<- end_time - start_time
+    fit_time <- as.numeric(fit_time, units="mins")
+    
+
+   dim1 <- dim(mesh[[1]])[1]
+   dim2 <- dim(mesh[[2]])[1]
+   
+   results[j,]<- c(dim1, dim2, L, fit_time, space, threshold, divisor)
+    j<-j+1
+
+  }
+  }
+}
+
+results$dim <- results$`dim 1` + results$`dim 2`
+```
+
+
+
+```{r}
+results <- read.csv("blue_results.csv",row.names = 1)
+#write.csv(results,"blue_results.csv")
+#blue_results<-results
+results
+```
+
+
+```{r}
+df[df$id==2,]
+```
+
+
+Do I want to try and work with the C++ code or do I give up and do the simpler version as a proof of concept
+
+```{r}
+source("Functions/Fit_Func.R")
+
+
+space_list <- c( 0.1, 0.2, 0.4, 0.5, 0.7 ,1)
+results2<-data.frame(matrix(ncol = 3, nrow = 7))
+colnames(results2)<-c( "dim", "Likelihood", "time")
+
+
+i<-2
+data<-discretize(df[df$id==i,],T,r)
+
+
+j<-1
+# 
+for (space in space_list){
+    
+  mask = make.mask(trap,buffer=2,spacing=space,type="trapbuffer") 
+
+    start_time <- Sys.time()
+    L2<-  Likelihood_integrate(theta,trap,data,mask,1)
+    end_time <- Sys.time()
+    fit_time<- end_time - start_time
+     fit_time <- as.numeric(fit_time, units="mins")
+
+   dim <-dim(mask)[1]
+    results2[j,]<- c(dim, L2, fit_time)
+    j<-j+1
+
+}
+
+results2 <- read.csv("red_results.csv",row.names = 1)
+#write.csv(results2,"red_results.csv")
+```
+
+
+
+```{r}
+results
+```
+
+
+
+```{r}
+results2
+```
+
+
+
+
+
+
