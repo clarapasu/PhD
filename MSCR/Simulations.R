@@ -41,7 +41,7 @@ set.seed(1)
 # ==============================================================================
 
 # Load the trap locations (from a real survey) and setup the spatial configuration
-traps<-read.csv("Study2/marten_traps2.csv",col.names = c("x","y"))
+traps<-read.csv("Study2/Data/marten_traps2.csv",col.names = c("x","y"))
 trap = make.poly(x=traps$x, y=traps$y)
 trap <- trap[-31,] # Remove the last element as it was repeated 
 cams<- read.traps(data = traps,detector="count") # we need different format of the trap locations 
@@ -79,7 +79,7 @@ A = a*D # Total study area
 # ==============================================================================
 
 # Define number of simulations per beta value
-n_sim <- 1
+n_sim <- 100
 
 # Initialize results dataframe
 # ------------------------------------------------------------------------------

@@ -263,3 +263,4 @@ confint_pop<-function(fit,T_days,trap,mesh,n,distribution = "binomial", loginter
   return(temp)
 }
 
+
