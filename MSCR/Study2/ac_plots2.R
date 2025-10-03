@@ -22,17 +22,17 @@ library(sf)
 
 # Load custom functions
 # ------------------------------------------------------------------------------
-Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
-source("Functions/Sim_Func.R")
-source("Functions/Fit_Func.R")
+Rcpp::sourceCpp("MSCR/Functions/LikelihoodC.cpp")
+source("MSCR/Functions/Sim_Func.R")
+source("MSCR/Functions/Fit_Func.R")
 
 # ==============================================================================
 # DATA LOADING
 # ==============================================================================
 
 # Load trap locations and capture data
-traps<-read.csv("Study2/Data/marten_traps2.csv")
-df<-read.csv("Study2/Data/marten_data2.csv")
+traps<-read.csv("Data/Study2/marten_traps2.csv")
+df<-read.csv("Data/Study2/marten_data2.csv")
 
 
 # Load pre-fitted model results from previous analysis

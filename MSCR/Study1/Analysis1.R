@@ -20,9 +20,9 @@ library(sf)
 
 # Source custom functions for likelihood calculations
 # ------------------------------------------------------------------------------
-Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
-source("Functions/Fit_Func.R")
-source("Functions/Sim_Func.R") # Needed for the half normal function
+Rcpp::sourceCpp("MSCR/Functions/LikelihoodC.cpp")
+source("MSCR/Functions/Fit_Func.R")
+source("MSCR/Functions/Sim_Func.R") # Needed for the half normal function
 
 # ==============================================================================
 # LOADING THE DATA
@@ -34,8 +34,8 @@ source("Functions/Sim_Func.R") # Needed for the half normal function
 #   consists of three variables (id, y, Time)
 #   representing an individual's unique ID, the index of the camera trap
 #   where the capture occurred, and the time of the capture.
-data<-read.csv("Study1/Data/marten_data1.csv")
-traps<-read.csv("Study1/Data/marten_traps1.csv")
+data<-read.csv("Data/Study1/marten_data1.csv")
+traps<-read.csv("Data/Study1/marten_traps1.csv")
 
 
 # Create spatial meshes for model fitting

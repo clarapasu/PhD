@@ -20,17 +20,17 @@ library(sf)
 
 # Source custom functions for likelihood calculations
 # ------------------------------------------------------------------------------
-Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
-source("Functions/Fit_Func.R")
-source("Functions/Sim_Func.R")
+Rcpp::sourceCpp("MSCR/Functions/LikelihoodC.cpp")
+source("MSCR/Functions/Fit_Func.R")
+source("MSCR/Functions/Sim_Func.R")
 
 # ==============================================================================
 # LOADING THE DATA
 # ==============================================================================
 
 # Load trap locations and capture data
-data<-read.csv("Study1/Data/marten_data1.csv")
-traps_og<-read.csv("Study1/Data/marten_traps1.csv")
+data<-read.csv("Data/Study1/marten_data1.csv")
+traps_og<-read.csv("Data/Study1/marten_traps1.csv")
 
 # ==============================================================================
 # SENSITIVITY ANALYSIS SETUP

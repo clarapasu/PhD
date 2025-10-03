@@ -11,7 +11,7 @@ library(ggplot2)
 library(viridis)
 
 # Source the hazard function code 
-source("Functions/Sim_Func.R")
+source("MSCR/Functions/Sim_Func.R")
 
 # ==============================================================================
 # SETUP AND PARAMETERS

@@ -20,9 +20,9 @@ library(sf)
 
 # Source custom functions for likelihood calculations
 # ------------------------------------------------------------------------------
-Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
-source("Functions/Sim_Func.R")
-source("Functions/Fit_Func.R")
+Rcpp::sourceCpp("MSCR/Functions/LikelihoodC.cpp")
+source("MSCR/Functions/Sim_Func.R")
+source("MSCR/Functions/Fit_Func.R")
 
 # ==============================================================================
 # LOADING THE DATA
@@ -34,8 +34,8 @@ source("Functions/Fit_Func.R")
 #   consists of three variables (id, y, Time)
 #   representing an individual's unique ID, the index of the camera trap
 #   where the capture occurred, and the time of the capture.
-data<-read.csv("Study2/Data/marten_data2.csv")
-traps<-read.csv("Study2/Data/marten_traps2.csv")
+data<-read.csv("Data/Study2/marten_data2.csv")
+traps<-read.csv("Data/Study2/marten_traps2.csv")
 
 
 # Create spatial meshes for model fitting

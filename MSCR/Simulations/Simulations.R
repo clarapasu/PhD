@@ -28,9 +28,9 @@ library(tidyr)
 
 # Source custom functions for likelihood calculations and simulation
 # ------------------------------------------------------------------------------
-Rcpp::sourceCpp("Functions/LikelihoodC.cpp")
-source("Functions/Sim_Func.R")
-source("Functions/Fit_Func.R")
+Rcpp::sourceCpp("MSCR/Functions/LikelihoodC.cpp")
+source("MSCR/Functions/Sim_Func.R")
+source("MSCR/Functions/Fit_Func.R")
 
 # set seed for reproducible results
 set.seed(1)
@@ -41,7 +41,7 @@ set.seed(1)
 # ==============================================================================
 
 # Load the trap locations (from a real survey) and setup the spatial configuration
-traps<-read.csv("Study2/Data/marten_traps2.csv",col.names = c("x","y"))
+traps<-read.csv("Data/Study2/marten_traps2.csv",col.names = c("x","y"))
 trap = make.poly(x=traps$x, y=traps$y)
 trap <- trap[-31,] # Remove the last element as it was repeated 
 cams<- read.traps(data = traps,detector="count") # we need different format of the trap locations 
