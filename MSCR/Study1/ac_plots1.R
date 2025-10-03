@@ -69,9 +69,9 @@ meshmat<-as.matrix(mask)
 
 # Select an individual for AC PDF demonstration
 # (This could be changed to any individual ID in the dataset, 
-# for the thesis we run this code with a,b,c)
+# for the thesis we run this code with df$id= 5, 8)
 ## select an individual of the dataset and the traps where it was seen
-data<-df[df$id==8,]
+data<-df[df$id==6,]
 
 # Create dataframe tracking which traps caught this individual
 trap_ind<-data.frame( x = trap_poly$x,
@@ -106,6 +106,17 @@ ac_density_ind<-data.frame(x = meshmat[,1],
                            y = meshmat[,2],
                            value = unlist(ac_posterior_ind)/integral)
 
+#================================================================================
+# AC PDF CALCULATION - CT SCR MODEL (NO MEMORY)
+# ==============================================================================
+
+# Repeat AC PDF calculation for CT SCR model (memory = 0)
+ac_posterior_ind_nm<-apply(meshmat,1,Likelihood_ind,theta=theta_est_nm,trap=trap_poly,data=data,memory=0)
+integral<-as.double(exp(Likelihood_integrate(theta_est_nm,trap_poly,data,mask,0)))
+ac_density_ind_nm<-data.frame(x = meshmat[,1],
+                              y = meshmat[,2],
+                              value = unlist(ac_posterior_ind_nm)/integral)
+
 # ==============================================================================
 # AC PDF PLOT - MSCR MODEL
 # ==============================================================================
@@ -122,12 +133,13 @@ plot_ind <- ggplot(ac_density_ind, aes(x = x, y = y, fill = value)) +
     color = "black",
     inherit.aes = FALSE
   ) +
-  coord_fixed(xlim = c(314.5, 317.5), ylim = c(4965, 4968), expand = FALSE) +
-  scale_fill_gradient(low = "white", high = "black", limits = c(0, 200))+
-  scale_x_continuous(breaks = c(315, 316, 317))+
+ coord_fixed(xlim = c(313, 317), ylim = c(4960, 4964), expand = FALSE) +
+  scale_fill_gradient(low = "white", high = "black", limits = c(0, 500))+
+  #scale_y_continuous(breaks = c(4959,4960, 4961, 4962))+
   labs(
     x = "Easting (km)",
     y = "Northing (km)",
+    title = " MSCR Estimated Surface",
     fill = "AC PDF",
     size = "Number of captures"
   ) +
@@ -145,26 +157,14 @@ plot_ind <- ggplot(ac_density_ind, aes(x = x, y = y, fill = value)) +
   theme_bw() +
   theme(
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7),
-    legend.key = element_rect(fill = "white")
+    legend.key = element_rect(fill = "white"),
+    plot.title = element_text(hjust = 0.5, size = 10)
   )
-
-
-#================================================================================
-# AC PDF CALCULATION - CT SCR MODEL (NO MEMORY)
-# ==============================================================================
-
-# Repeat AC PDF calculation for CT SCR model (memory = 0)
-ac_posterior_ind_nm<-apply(meshmat,1,Likelihood_ind,theta=theta_est_nm,trap=trap_poly,data=data,memory=0)
-integral<-as.double(exp(Likelihood_integrate(theta_est_nm,trap_poly,data,mask,0)))
-ac_density_ind_nm<-data.frame(x = meshmat[,1],
-                              y = meshmat[,2],
-                              value = unlist(ac_posterior_ind_nm)/integral)
-
 # ==============================================================================
 # AC PDF PLOT - CT SCR MODEL  
 # ==============================================================================
 
-# Create AC PDF plot for MSCR model for the selected individual
+# Create AC PDF plot for CT SCR model for the selected individual
 cell <- attr(mask, "spacing")
 plot_ind_nm <- ggplot(ac_density_ind_nm, aes(x = x, y = y, fill = value)) +
   geom_tile(width = cell, height = cell) +
@@ -176,12 +176,13 @@ plot_ind_nm <- ggplot(ac_density_ind_nm, aes(x = x, y = y, fill = value)) +
     color = "black",
     inherit.aes = FALSE
   ) +
-  coord_fixed(xlim = c(314.5, 317.5), ylim = c(4965, 4968), expand = FALSE) +
-  scale_fill_gradient(low = "white", high = "black", limits = c(0, 200))+
-  scale_x_continuous(breaks = c(315, 316, 317))+
+  coord_fixed(xlim = c(313, 317), ylim = c(4960, 4964), expand = FALSE) +
+  scale_fill_gradient(low = "white", high = "black", limits = c(0, 500))+
+ # scale_y_continuous(breaks = c(4959,4960, 4961, 4962))+
   labs(
     x = "Easting (km)",
     y = "Northing (km)",
+    title = "CT SCR Estimated Surface",
     fill = "AC PDF",
     size = "Number of captures"
   ) +
@@ -199,7 +200,8 @@ plot_ind_nm <- ggplot(ac_density_ind_nm, aes(x = x, y = y, fill = value)) +
   theme_bw() +
   theme(
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7),
-    legend.key = element_rect(fill = "white")
+    legend.key = element_rect(fill = "white"),
+    plot.title = element_text(hjust = 0.5, size = 10)
   )
 
 # ==============================================================================
@@ -221,6 +223,3 @@ final_plot <- plot_ind + plot_ind_nm_noleg +
 
 # Display
 final_plot
-
-# Save high-quality figure
-#ggsave("Figures/AC_PDF_horizontal_legend_patchwork.png", final_plot, width = 12, height = 6, dpi = 300)
