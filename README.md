@@ -1,2 +1,3 @@
 # PhD
-Full code used in my PhD thesis. 
+Full code used for the PhD thesis " Incorporating Memory into Spatial Capture-Recapture Models"
+by Clara Panchaud
