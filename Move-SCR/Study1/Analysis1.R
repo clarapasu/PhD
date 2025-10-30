@@ -23,7 +23,7 @@ library(purrr)
 # Source custom functions
 source("MSCR/Functions/Fit_Func.r")
 source("MSCR/Functions/Sim_Func.r")
-#source("Functions/Extra_Func.r")
+source("Move-SCR/Functions/Extra_Func.r")
 
 compile("Move-SCR/Functions/like_MMPP.cpp")
 dyn.load(dynlib("Move-SCR/Functions/like_MMPP"))
