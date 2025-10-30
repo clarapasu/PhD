@@ -7,6 +7,7 @@
 # 2. CT SCR (Continuous Time SCR) - no memory, continuous time
 # 3. DT SCR (Discrete Time SCR) - traditional discrete time model
 #
+#
 # The study evaluates how different values of the memory parameter beta 
 # affect population estimation accuracy across these models.
 # ==============================================================================
