@@ -34,6 +34,59 @@ neighbour_matrix <- function(mesh, tol = 1e-6) {
 }
 
 
+
+#' Form the transition matrix Q
+#'
+#' @param theta the two parameters included in Q
+#' @param ac_dist a matrix of the distances between the activity centre and the grid cells,
+#'                such that ac_dist[i,k] is the distance between the activity centre i
+#'                and the centre of grid cell k
+#'                
+#' @return  three lists of length equal to the number of simulated individuals, where Q_list contains
+#'          the Q matrices that are now individual specific, same for pi_list containing the initial state probabilities
+#'          and s0 the initial state locations. 
+
+
+make_Q<-function(theta,ac_dist,mesh,N,S){
+  
+  Q_list <- list()
+  pi_list <- list()
+  s0 <- numeric(N)
+  
+  neighbour<-neighbour_matrix(mesh)
+  
+  for (i in 1:N){
+    Q<-neighbour
+    for (j in 1:S){
+      for (k in 1:S){
+        if(Q[j,k]==1){
+          Q[j,k]= exp( theta[1] - theta[2] * ac_dist[i,k]) 
+        }
+      }
+    }
+    diag(Q)<- - rowSums(Q)
+    
+    eig <- eigen(t(Q))
+    pi <- Re(eig$vectors[, which.min(abs(eig$values))])
+    pi <- abs(pi) / sum(abs(pi))  # Ensure positive and normalized
+    
+    # Safety check
+    if(any(pi < 0) || any(!is.finite(pi))) {
+      pi <- rep(1/S, S)  # Fallback to uniform distribution
+    }
+    
+    initial_state <- sample(1:S, size = 1, prob = pi)
+    
+    Q_list[[i]] <- Q
+    pi_list[[i]] <- pi
+    s0[i] <- initial_state
+  }
+  
+  return(list(Q_list,pi_list,s0))
+}
+
+
+
 #' Estimate population size and detection probability under the UMove-SCR model
 #'
 #' Computes the estimated population size (N̂) and the overall detection 
@@ -263,4 +316,95 @@ confint_pop_mmmpp_ac <- function(theta_est, Time, observed_ind, S, neighbour, tr
   
   return(c(N_est=N_est, SE=SE))
 }
+
+
+
+
+#' Convert MMPP simulation output to discretised detection data used for CT SCR
+#'
+#' Turns the MMMPP data into a discretized detection history format suitable 
+#' for analysis with CT SCR. The function maps 
+#' detections to trap locations, removes duplicate detections within a time 
+#' threshold, and discretises continuous time data into intervals.
+#'
+#' @param mmpp List. MMPP simulation output containing:
+#'        \itemize{
+#'          \item ss: spatial location index of detections
+#'          \item tt: detection times
+#'        }
+#' @param traps_on Integer vector. Indices of active trap locations.
+#' @param T Numeric(1). Total survey duration.
+#' @param r2 Numeric(1). Parameter passed to discretise function.
+#' @param mesh Data frame. Mesh defining the state space of the MMMPP, here defining the trap locations with columns x and y.
+#'
+#' @return List of length 2:
+#'         \itemize{
+#'           \item ddfmat_sim: matrix of discretised detection data
+#'           \item dfrows_sim: numeric vector with number of detections per individual
+#' 
+mmpp_to_df<-function(mmpp,traps_on,T,r2,mesh){
+  # Convert MMPP simulation output to observation data frame
+  # Map over spatial locations (ss) and times (tt) to create tibbles
+  obs_df <- map2(
+    .x = mmpp$ss,
+    .y = mmpp$tt,
+    .f = ~ tibble(y = .x, Time = .y)
+  ) %>%
+    # Combine all observations into single data frame with ID column for each individual
+    bind_rows(.id = "id") %>%
+    mutate(id = as.integer(id))
+  
+  # Convert to base R data frame
+  obs_df<-as.data.frame(obs_df)
+  
+  # Remove last row as it is an artifact 
+  obs_df<-obs_df[-nrow(obs_df),]
+  
+  # Add trap coordinates from mesh based on trap locations
+  obs_df$trap_x <- mesh[obs_df$y,]$x
+  obs_df$trap_y <- mesh[obs_df$y,]$y
+  
+  # Remap trap IDs to match the active traps
+  obs_df$y<- match(obs_df$y, traps_on)
+  
+  # Remove duplicate detections that occur within 1 hour (0.04166667 days)
+  # This filters out rapid re-detections at the same trap
+  df_sim <- obs_df %>%
+    arrange(id, Time) %>% 
+    filter(!(id == lag(id) & (Time - lag(Time) < 0.04166667)))
+  
+  # Pre-allocate data frame for discretized observations
+  n_rows <- sum(table(df_sim$id))
+  ddf_sim <- data.frame(
+    t = numeric(n_rows),
+    y = integer(n_rows),
+    id = integer(n_rows)
+  )
+  
+  row_idx <- 1
+  # Loop through each individual and discretise their detection history
+  for(i in unique(df_sim$id)){
+    # Discretise observations for individual i into time intervals using r2
+    data <- discretize(df_sim[df_sim$id == i, ],T, r2)
+    data$id <- i
+    
+    # Determine how many rows this individual contributes
+    n_new <- nrow(data)
+    
+    # Insert discretised data into pre-allocated data frame
+    ddf_sim[row_idx:(row_idx + n_new - 1), ] <- data
+    
+    # Update row index for next individual
+    row_idx <- row_idx + n_new
+    
+    # Convert to matrix format
+    ddfmat_sim = as.matrix(ddf_sim)
+    
+    # Count detections per individual
+    dfrows_sim = as.numeric(table(ddf_sim$id))
+  }
+  
+  return(list(ddfmat_sim, dfrows_sim))
+}
+
 
